@@ -186,7 +186,7 @@ pre-built wheels that SmartSim does.
 The Python client for SmartRedis is installed through
 ``pip`` as follows:
 
-.. include:: ../smartredis/doc/install/python_client.rst
+.. include:: ../../smartredis/doc/install/python_client.rst
 
 
 Build SmartRedis Library (C++, C, Fortran)
@@ -200,7 +200,7 @@ also requires the installation of the following tools
   - libtool
 
 
-.. include:: ../smartredis/doc/install/lib.rst
+.. include:: ../../smartredis/doc/install/lib.rst
 
 
 -----------------------------------------------------------------
@@ -251,7 +251,7 @@ runtimes.
 Install SmartRedis from Source
 ==============================
 
-.. include:: ../smartredis/doc/install/from_source.rst
+.. include:: ../../smartredis/doc/install/from_source.rst
 
 
 Building the Documentation

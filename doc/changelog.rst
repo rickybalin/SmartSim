@@ -49,5 +49,5 @@ SmartRedis
 
 .. _changelog:
 
-.. include:: ../smartredis/doc/changelog.rst
+.. include:: ../../smartredis/doc/changelog.rst
     :start-line: 3
