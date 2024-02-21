@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -167,6 +167,7 @@ deps = [
     "tqdm>=4.50.2",
     "filelock>=3.4.2",
     "protobuf~=3.20",
+    "watchdog>=3.0.0,<4.0.0",
 ]
 
 # Add SmartRedis at specific version
@@ -174,7 +175,7 @@ deps.append("smartredis>={}".format(versions.SMARTREDIS))
 
 extras_require = {
     "dev": [
-        "black>=20.8b1",
+        "black==24.1a1",
         "isort>=5.6.4",
         "pylint>=2.10.0,<3",
         "pytest>=6.0.0",
@@ -187,8 +188,9 @@ extras_require = {
         "types-redis",
         "types-tabulate",
         "types-tqdm",
-        "types-tensorflow",
+        "types-tensorflow==2.12.0.9",
         "types-setuptools",
+        "typing_extensions>=4.1.0",
     ],
     # see smartsim/_core/_install/buildenv.py for more details
     **versions.ml_extras_required()
@@ -199,10 +201,6 @@ extras_require = {
 setup(
     version=smartsim_version,
     install_requires=deps,
-    packages=["smartsim"],
-    package_data={"smartsim": [
-        "_core/bin/*",
-    ]},
     cmdclass={
         "build_py": SmartSimBuild,
         "install": InstallPlatlib,

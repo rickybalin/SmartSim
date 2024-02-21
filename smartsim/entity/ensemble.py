@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import typing as t
-
 from copy import deepcopy
 from os import getcwd
 
@@ -41,9 +40,9 @@ from ..error import (
 from ..log import get_logger
 from ..settings.base import BatchSettings, RunSettings
 from .dbobject import DBModel, DBScript
+from .entity import SmartSimEntity
 from .entityList import EntityList
 from .model import Model
-from .entity import SmartSimEntity
 from .strategies import create_all_permutations, random_permutations, step_values
 
 logger = get_logger(__name__)
@@ -358,7 +357,7 @@ class Ensemble(EntityList[Model]):
         self,
         name: str,
         backend: str,
-        model: t.Optional[str] = None,
+        model: t.Optional[bytes] = None,
         model_path: t.Optional[str] = None,
         device: t.Literal["CPU", "GPU"] = "CPU",
         devices_per_node: int = 1,
@@ -423,6 +422,18 @@ class Ensemble(EntityList[Model]):
             inputs=inputs,
             outputs=outputs,
         )
+        dupe = next(
+            (
+                db_model.name
+                for ensemble_ml_model in self._db_models
+                if ensemble_ml_model.name == db_model.name
+            ),
+            None,
+        )
+        if dupe:
+            raise SSUnsupportedError(
+                f'An ML Model with name "{db_model.name}" already exists'
+            )
         self._db_models.append(db_model)
         for entity in self.models:
             self._extend_entity_db_models(entity, [db_model])
@@ -472,6 +483,18 @@ class Ensemble(EntityList[Model]):
             devices_per_node=devices_per_node,
             first_device=first_device,
         )
+        dupe = next(
+            (
+                db_script.name
+                for ensemble_script in self._db_scripts
+                if ensemble_script.name == db_script.name
+            ),
+            None,
+        )
+        if dupe:
+            raise SSUnsupportedError(
+                f'A Script with name "{db_script.name}" already exists'
+            )
         self._db_scripts.append(db_script)
         for entity in self.models:
             self._extend_entity_db_scripts(entity, [db_script])
@@ -512,24 +535,84 @@ class Ensemble(EntityList[Model]):
         :type first_device: int
         """
         db_script = DBScript(
-            name=name, script=function, device=device,
-            devices_per_node=devices_per_node, first_device=first_device
+            name=name,
+            script=function,
+            device=device,
+            devices_per_node=devices_per_node,
+            first_device=first_device,
         )
+        dupe = next(
+            (
+                db_script.name
+                for ensemble_script in self._db_scripts
+                if ensemble_script.name == db_script.name
+            ),
+            None,
+        )
+        if dupe:
+            raise SSUnsupportedError(
+                f'A Script with name "{db_script.name}" already exists'
+            )
         self._db_scripts.append(db_script)
         for entity in self.models:
             self._extend_entity_db_scripts(entity, [db_script])
 
     @staticmethod
     def _extend_entity_db_models(model: Model, db_models: t.List[DBModel]) -> None:
-        entity_db_models = [db_model.name for db_model in model.db_models]
+        """
+        Ensures that the Machine Learning model names being added to the Ensemble
+        are unique.
 
-        for db_model in db_models:
-            if db_model.name not in entity_db_models:
-                model.add_ml_model_object(db_model)
+        This static method checks if the provided ML model names already exist in
+        the Ensemble. An SSUnsupportedError is raised if any duplicate names are
+        found. Otherwise, it appends the given list of DBModels to the Ensemble.
+
+        :param model: SmartSim Model object.
+        :type model: Model
+        :param db_models: List of DBModels to append to the Ensemble.
+        :type db_models: t.List[DBModel]
+        """
+        for add_ml_model in db_models:
+            dupe = next(
+                (
+                    db_model.name
+                    for db_model in model.db_models
+                    if db_model.name == add_ml_model.name
+                ),
+                None,
+            )
+            if dupe:
+                raise SSUnsupportedError(
+                    f'An ML Model with name "{add_ml_model.name}" already exists'
+                )
+            model.add_ml_model_object(add_ml_model)
 
     @staticmethod
     def _extend_entity_db_scripts(model: Model, db_scripts: t.List[DBScript]) -> None:
-        entity_db_scripts = [db_script.name for db_script in model.db_scripts]
-        for db_script in db_scripts:
-            if not db_script.name in entity_db_scripts:
-                model.add_script_object(db_script)
+        """
+        Ensures that the script/function names being added to the Ensemble are unique.
+
+        This static method checks if the provided script/function names already exist
+        in the Ensemble. An SSUnsupportedError is raised if any duplicate names
+        are found. Otherwise, it appends the given list of DBScripts to the
+        Ensemble.
+
+        :param model: SmartSim Model object.
+        :type model: Model
+        :param db_scripts: List of DBScripts to append to the Ensemble.
+        :type db_scripts: t.List[DBScript]
+        """
+        for add_script in db_scripts:
+            dupe = next(
+                (
+                    add_script.name
+                    for db_script in model.db_scripts
+                    if db_script.name == add_script.name
+                ),
+                None,
+            )
+            if dupe:
+                raise SSUnsupportedError(
+                    f'A Script with name "{add_script.name}" already exists'
+                )
+            model.add_script_object(add_script)

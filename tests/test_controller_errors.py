@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,9 @@ from smartsim.entity import Model
 from smartsim.error import SmartSimError, SSUnsupportedError
 from smartsim.error.errors import SSUnsupportedError
 from smartsim.settings import RunSettings
+
+# The tests in this file belong to the group_a group
+pytestmark = pytest.mark.group_a
 
 
 def test_finished_entity_orc_error():
@@ -97,7 +100,7 @@ def test_wrong_orchestrator(wlmutils):
     cont = Controller(launcher="local")
     manifest = Manifest(orc)
     with pytest.raises(SmartSimError):
-        cont._launch(manifest)
+        cont._launch("exp_name", "exp_path", manifest)
 
 
 def test_bad_orc_checkpoint():

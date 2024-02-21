@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,9 @@ try:
     config_setter = Client.config_set
 except AttributeError:
     pytestmark = pytest.mark.skip(reason="SmartRedis version is < 0.3.1")
+
+# The tests in this file belong to the group_b group
+pytestmark = pytest.mark.group_b
 
 
 def test_config_methods(dbutils, local_db):

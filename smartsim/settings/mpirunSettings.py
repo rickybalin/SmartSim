@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 from warnings import simplefilter, warn
 
 from ..log import get_logger
+
 # pylint: disable-next=unused-import
 from .mpiSettings import MpiexecSettings, MpirunSettings, OrterunSettings
 

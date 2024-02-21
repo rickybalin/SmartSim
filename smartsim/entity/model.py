@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 import collections.abc
+import re
 import sys
 import typing as t
 import warnings
@@ -170,8 +171,7 @@ class Model(SmartSimEntity):
         # restrictive than what we need (but it avoids relative path issues)
         for strategy in [to_copy, to_symlink, to_configure]:
             if strategy is not None and any(
-                osp.basename(filename) == "smartsim_params.txt"
-                for filename in strategy
+                osp.basename(filename) == "smartsim_params.txt" for filename in strategy
             ):
                 raise ValueError(
                     "`smartsim_params.txt` is a file automatically "
@@ -253,10 +253,16 @@ class Model(SmartSimEntity):
         :type kwargs: dict, optional
         """
 
-        uds_options = {
+        if not re.match(r"^[a-zA-Z0-9.:\,_\-/]*$", unix_socket):
+            raise ValueError(
+                f"Invalid name for unix socket: {unix_socket}. Must only "
+                "contain alphanumeric characters or . : _ - /"
+            )
+        uds_options: t.Dict[str, t.Union[int, str]] = {
             "unix_socket": unix_socket,
             "socket_permissions": socket_permissions,
-            "port": 0,  # This is hardcoded to 0 as recommended by redis for UDS
+            # This is hardcoded to 0 as recommended by redis for UDS
+            "port": 0,
         }
 
         common_options = {
@@ -326,9 +332,18 @@ class Model(SmartSimEntity):
 
     def _set_colocated_db_settings(
         self,
-        connection_options: t.Dict[str, t.Any],
-        common_options: t.Dict[str, t.Any],
-        **kwargs: t.Any,
+        connection_options: t.Mapping[str, t.Union[int, t.List[str], str]],
+        common_options: t.Dict[
+            str,
+            t.Union[
+                t.Union[t.Iterable[t.Union[int, t.Iterable[int]]], None],
+                bool,
+                int,
+                str,
+                None,
+            ],
+        ],
+        **kwargs: t.Union[int, None],
     ) -> None:
         """
         Ingest the connection-specific options (UDS/TCP) and set the final settings
@@ -351,21 +366,42 @@ class Model(SmartSimEntity):
             )
 
         # TODO list which db settings can be extras
+        custom_pinning_ = t.cast(
+            t.Optional[t.Iterable[t.Union[int, t.Iterable[int]]]],
+            common_options.get("custom_pinning"),
+        )
+        cpus_ = t.cast(int, common_options.get("cpus"))
         common_options["custom_pinning"] = self._create_pinning_string(
-            common_options["custom_pinning"], common_options["cpus"]
+            custom_pinning_, cpus_
         )
 
-        colo_db_config = {}
+        colo_db_config: t.Dict[
+            str,
+            t.Union[
+                bool,
+                int,
+                str,
+                None,
+                t.List[str],
+                t.Iterable[t.Union[int, t.Iterable[int]]],
+                t.List[DBModel],
+                t.List[DBScript],
+                t.Dict[str, t.Union[int, None]],
+                t.Dict[str, str],
+            ],
+        ] = {}
         colo_db_config.update(connection_options)
         colo_db_config.update(common_options)
-        # redisai arguments for inference settings
-        colo_db_config["rai_args"] = {
+
+        redis_ai_temp = {
             "threads_per_queue": kwargs.get("threads_per_queue", None),
             "inter_op_parallelism": kwargs.get("inter_op_parallelism", None),
             "intra_op_parallelism": kwargs.get("intra_op_parallelism", None),
         }
+        # redisai arguments for inference settings
+        colo_db_config["rai_args"] = redis_ai_temp
         colo_db_config["extra_db_args"] = {
-            k: str(v) for k, v in kwargs.items() if k not in colo_db_config["rai_args"]
+            k: str(v) for k, v in kwargs.items() if k not in redis_ai_temp
         }
 
         self._check_db_objects_colo()
@@ -449,7 +485,7 @@ class Model(SmartSimEntity):
         self,
         name: str,
         backend: str,
-        model: t.Optional[str] = None,
+        model: t.Optional[bytes] = None,
         model_path: t.Optional[str] = None,
         device: t.Literal["CPU", "GPU"] = "CPU",
         devices_per_node: int = 1,
@@ -609,8 +645,11 @@ class Model(SmartSimEntity):
         :type first_device: int
         """
         db_script = DBScript(
-            name=name, script=function, device=device,
-            devices_per_node=devices_per_node, first_device=first_device
+            name=name,
+            script=function,
+            device=device,
+            devices_per_node=devices_per_node,
+            first_device=first_device,
         )
         self.add_script_object(db_script)
 

@@ -66,23 +66,20 @@ of the tests located within the ``on_wlm`` directory.
 
 To run the ``on_wlm`` test suite, users will have to be on a system
 with one of the supported workload managers. Additionally, users will
-need to obtain an allocation of **at least 3 nodes**.
+need to obtain an allocation of **at least 4 nodes**.
 
 Examples of how to obtain allocations on systems with the launchers:
 
 .. code:: bash
 
   # for slurm (with srun)
-  salloc -N 3 -A account --exclusive -t 00:10:00
+  salloc -N 4 -A account --exclusive -t 00:10:00
 
   # for PBSPro (with aprun)
-  qsub -l select=3 -l place=scatter -l walltime=00:10:00 -q queue
-
-  # for Cobalt (with aprun)
-  qsub -n 3 -t 00:10:00 -A account -q queue -I
+  qsub -l select=4 -l place=scatter -l walltime=00:10:00 -q queue
 
   # for LSF (with jsrun)
-  bsub -Is -W 00:30 -nnodes 3 -P project $SHELL
+  bsub -Is -W 00:30 -nnodes 4 -P project $SHELL
 
 Values for queue, account, or project should be substituted appropriately.
 
@@ -91,7 +88,6 @@ launcher environment variable: ``SMARTSIM_TEST_LAUNCHER`` to one
 of the following values
 
  - slurm
- - cobalt
  - pbs
  - lsf
  - local
@@ -123,7 +119,7 @@ A full example on an internal SLURM system
 
 .. code:: bash
 
-  salloc -N 3 -A account --exclusive -t 03:00:00
+  salloc -N 4 -A account --exclusive -t 03:00:00
   export SMARTSIM_TEST_LAUNCHER=slurm
   export SMARTSIM_TEST_INTERFACE=ipogif0
   export SMARTSIM_TEST_DEVICE=gpu
@@ -273,4 +269,3 @@ The actions are defined using yaml files are are located in the
 Each pull request, push and merge the test suite for SmartRedis
 and SmartSim are run. For SmartSim, this is the ``local`` test suite
 with the local launcher.
-

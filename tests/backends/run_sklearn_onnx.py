@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,6 @@ def build_lin_reg():
 
 
 def build_kmeans():
-
     X = np.arange(20, dtype=np.float32).reshape(10, 2)
     tr = KMeans(n_clusters=2)
     tr.fit(X)
@@ -76,7 +75,6 @@ def run_model(client, model_name, device, model, model_input, in_name, out_names
 
 
 def run(device):
-
     # connect a client to the database
     client = Client(cluster=False)
 

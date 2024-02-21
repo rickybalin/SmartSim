@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,8 +31,8 @@ from shlex import split as sh_split
 
 from ....error import AllocationError
 from ....log import get_logger
-from .step import Step
 from ....settings import AprunSettings, RunSettings, Singularity
+from .step import Step, proxyable_launch_cmd
 
 logger = get_logger(__name__)
 
@@ -56,9 +56,11 @@ class AprunStep(Step):
 
     def _get_mpmd(self) -> t.List[RunSettings]:
         """Temporary convenience function to return a typed list
-        of attached RunSettings"""
+        of attached RunSettings
+        """
         return self.run_settings.mpmd
 
+    @proxyable_launch_cmd
     def get_launch_cmd(self) -> t.List[str]:
         """Get the command to launch this step
 
@@ -110,12 +112,6 @@ class AprunStep(Step):
             self.alloc = os.environ["PBS_JOBID"]
             logger.debug(
                 f"Running on PBS allocation {self.alloc} gleaned from user environment"
-            )
-        elif "COBALT_JOBID" in os.environ:
-            self.alloc = os.environ["COBALT_JOBID"]
-            logger.debug(
-                f"Running on Cobalt allocation {self.alloc} gleaned "
-                "from user environment"
             )
         else:
             raise AllocationError(

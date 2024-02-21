@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,23 +28,22 @@ import typing as t
 
 from .._core.utils.helpers import is_valid_cmd
 from ..error import SmartSimError
-from ..wlm import detect_launcher
 from ..settings import (
-    base,
-    CobaltBatchSettings,
-    QsubBatchSettings,
-    SbatchSettings,
+    AprunSettings,
     BsubBatchSettings,
     Container,
-    RunSettings,
-    AprunSettings,
-    SrunSettings,
-    MpirunSettings,
-    MpiexecSettings,
-    OrterunSettings,
     JsrunSettings,
+    MpiexecSettings,
+    MpirunSettings,
+    OrterunSettings,
     PalsMpiexecSettings,
+    QsubBatchSettings,
+    RunSettings,
+    SbatchSettings,
+    SrunSettings,
+    base,
 )
+from ..wlm import detect_launcher
 
 _TRunSettingsSelector = t.Callable[[str], t.Callable[..., RunSettings]]
 
@@ -81,7 +80,6 @@ def create_batch_settings(
     """
     # all supported batch class implementations
     by_launcher: t.Dict[str, t.Callable[..., base.BatchSettings]] = {
-        "cobalt": CobaltBatchSettings,
         "pbs": QsubBatchSettings,
         "slurm": SbatchSettings,
         "lsf": BsubBatchSettings,
@@ -164,7 +162,6 @@ def create_run_settings(
         "slurm": ["srun", "mpirun", "mpiexec"],
         "pbs": ["aprun", "mpirun", "mpiexec"],
         "pals": ["mpiexec"],
-        "cobalt": ["aprun", "mpirun", "mpiexec"],
         "lsf": ["jsrun", "mpirun", "mpiexec"],
         "local": [""],
     }

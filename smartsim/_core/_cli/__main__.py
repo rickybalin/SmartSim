@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,14 +24,30 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import os
 import sys
 
 from smartsim._core._cli.cli import default_cli
+from smartsim._core._cli.utils import SMART_LOGGER_FORMAT
+from smartsim.error.errors import SmartSimCLIActionCancelled
+from smartsim.log import get_logger
+
+logger = get_logger("Smart", fmt=SMART_LOGGER_FORMAT)
 
 
 def main() -> int:
     smart_cli = default_cli()
-    return smart_cli.execute(sys.argv)
+    exception_trace_back_msg = "SmartSim exited with the following exception info:"
+
+    try:
+        return smart_cli.execute(sys.argv)
+    except SmartSimCLIActionCancelled as ssi:
+        logger.info(str(ssi))
+        logger.debug(exception_trace_back_msg, exc_info=ssi)
+    except KeyboardInterrupt as e:
+        logger.info("SmartSim was terminated by user")
+        logger.debug(exception_trace_back_msg, exc_info=e)
+    return os.EX_OK
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,24 +24,37 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import os
 import os.path as osp
 import typing as t
 from os import getcwd
 
 from tabulate import tabulate
 
+from smartsim.error.errors import SSUnsupportedError
+
 from ._core import Controller, Generator, Manifest
 from ._core.utils import init_default
 from .database import Orchestrator
 from .entity import Ensemble, Model, SmartSimEntity
 from .error import SmartSimError
-from .log import get_logger
-from .settings import settings, base, Container
+from .log import ctx_exp_path, get_logger, method_contextualizer
+from .settings import Container, base, settings
 from .wlm import detect_launcher
 
 logger = get_logger(__name__)
 
 
+def _exp_path_map(exp: "Experiment") -> str:
+    """Mapping function for use by method contextualizer to place the path of
+    the currently-executing experiment into context for log enrichment"""
+    return exp.exp_path
+
+
+_contextualize = method_contextualizer(ctx_exp_path, _exp_path_map)
+
+
+# pylint: disable=no-self-use
 class Experiment:
     """Experiments are the Python user interface for SmartSim.
 
@@ -109,7 +122,7 @@ class Experiment:
         :param exp_path: path to location of ``Experiment`` directory if generated
         :type exp_path: str, optional
         :param launcher: type of launcher being used, options are "slurm", "pbs",
-                         "cobalt", "lsf", or "local". If set to "auto",
+                         "lsf", or "local". If set to "auto",
                          an attempt will be made to find an available launcher
                          on the system.
                          Defaults to "local"
@@ -122,15 +135,18 @@ class Experiment:
             if not osp.isdir(osp.abspath(exp_path)):
                 raise NotADirectoryError("Experiment path provided does not exist")
             exp_path = osp.abspath(exp_path)
-        self.exp_path = init_default(osp.join(getcwd(), name), exp_path, str)
+        self.exp_path: str = init_default(osp.join(getcwd(), name), exp_path, str)
 
         if launcher == "auto":
             launcher = detect_launcher()
+        if launcher == "cobalt":
+            raise SSUnsupportedError("Cobalt launcher is no longer supported.")
 
         self._control = Controller(launcher=launcher)
         self._launcher = launcher.lower()
         self.db_identifiers: t.Set[str] = set()
 
+    @_contextualize
     def start(
         self,
         *args: t.Any,
@@ -194,6 +210,8 @@ class Experiment:
             if summary:
                 self._launch_summary(start_manifest)
             self._control.start(
+                exp_name=self.name,
+                exp_path=self.exp_path,
                 manifest=start_manifest,
                 block=block,
                 kill_on_interrupt=kill_on_interrupt,
@@ -202,6 +220,7 @@ class Experiment:
             logger.error(e)
             raise
 
+    @_contextualize
     def stop(self, *args: t.Any) -> None:
         """Stop specific instances launched by this ``Experiment``
 
@@ -238,6 +257,7 @@ class Experiment:
             logger.error(e)
             raise
 
+    @_contextualize
     def generate(
         self,
         *args: t.Any,
@@ -275,6 +295,7 @@ class Experiment:
             logger.error(e)
             raise
 
+    @_contextualize
     def poll(
         self, interval: int = 10, verbose: bool = True, kill_on_interrupt: bool = True
     ) -> None:
@@ -318,6 +339,7 @@ class Experiment:
             logger.error(e)
             raise
 
+    @_contextualize
     def finished(self, entity: SmartSimEntity) -> bool:
         """Query if a job has completed.
 
@@ -341,6 +363,7 @@ class Experiment:
             logger.error(e)
             raise
 
+    @_contextualize
     def get_status(self, *args: t.Any) -> t.List[str]:
         """Query the status of launched instances
 
@@ -379,8 +402,9 @@ class Experiment:
             logger.error(e)
             raise
 
-    @staticmethod
+    @_contextualize
     def create_ensemble(
+        self,
         name: str,
         params: t.Optional[t.Dict[str, t.Any]] = None,
         batch_settings: t.Optional[base.BatchSettings] = None,
@@ -453,8 +477,9 @@ class Experiment:
             logger.error(e)
             raise
 
-    @staticmethod
+    @_contextualize
     def create_model(
+        self,
         name: str,
         run_settings: base.RunSettings,
         params: t.Optional[t.Dict[str, t.Any]] = None,
@@ -510,7 +535,7 @@ class Experiment:
                 "epoch": 10,
                 "lr": 0.001
             }
-            model = exp.create_model("pytorch_model", run_settings, params=params)
+            model = exp.create_model("pytorch_model", run_settings, params=train_params)
             model.attach_generator_files(to_configure="./train.cfg")
             exp.generate(model)
 
@@ -550,7 +575,6 @@ class Experiment:
         """
         path = init_default(getcwd(), path, str)
 
-        # mcb
         if path is None:
             path = getcwd()
         if params is None:
@@ -567,6 +591,7 @@ class Experiment:
             logger.error(e)
             raise
 
+    @_contextualize
     def create_run_settings(
         self,
         exe: str,
@@ -631,6 +656,7 @@ class Experiment:
             logger.error(e)
             raise
 
+    @_contextualize
     def create_batch_settings(
         self,
         nodes: int = 1,
@@ -691,12 +717,13 @@ class Experiment:
             logger.error(e)
             raise
 
+    @_contextualize
     def create_database(
         self,
         port: int = 6379,
         db_nodes: int = 1,
         batch: bool = False,
-        hosts: t.Optional[t.List[str]] = None,
+        hosts: t.Optional[t.Union[t.List[str], str]] = None,
         run_command: str = "auto",
         interface: str = "ipogif0",
         account: t.Optional[str] = None,
@@ -746,6 +773,9 @@ class Experiment:
         :type queue: str, optional
         :param single_cmd: run all shards with one (MPMD) command, defaults to True
         :type single_cmd: bool, optional
+        :param db_identifier: an identifier to distinguish this orchestrator in
+            multiple-database experiments, defaults to "orchestrator"
+        :type db_identifier: str, optional
         :raises SmartSimError: if detection of launcher or of run command fails
         :raises SmartSimError: if user indicated an incompatible run command
             for the launcher
@@ -771,6 +801,7 @@ class Experiment:
             **kwargs,
         )
 
+    @_contextualize
     def reconnect_orchestrator(self, checkpoint: str) -> Orchestrator:
         """Reconnect to a running ``Orchestrator``
 
@@ -791,18 +822,18 @@ class Experiment:
             logger.error(e)
             raise
 
-    # pylint: disable-next=redefined-builtin
-    def summary(self, format: str = "github") -> str:
+    @_contextualize
+    def summary(self, style: str = "github") -> str:
         """Return a summary of the ``Experiment``
 
         The summary will show each instance that has been
         launched and completed in this ``Experiment``
 
-        :param format: the style in which the summary table is formatted,
+        :param style: the style in which the summary table is formatted,
                        for a full list of styles see:
                        https://github.com/astanin/python-tabulate#table-format,
                        defaults to "github"
-        :type format: str, optional
+        :type style: str, optional
         :return: tabulate string of ``Experiment`` history
         :rtype: str
         """
@@ -833,7 +864,7 @@ class Experiment:
             values,
             headers,
             showindex=True,
-            tablefmt=format,
+            tablefmt=style,
             missingval="None",
             disable_numparse=True,
         )
@@ -876,3 +907,35 @@ class Experiment:
             )
         # Otherwise, add
         self.db_identifiers.add(db_identifier)
+
+    def enable_telemetry(self) -> None:
+        """Experiments will start producing telemetry for all entities run
+        through ``Experiment.start``
+
+        .. warning::
+
+            This method is currently implemented so that ALL ``Experiment``
+            instances will begin producing telemetry data. In the future it
+            is planned to have this method work on a "per instance" basis!
+        """
+        self._set_telemetry(True)
+
+    def disable_telemetry(self) -> None:
+        """Experiments will stop producing telemetry for all entities run
+        through ``Experiment.start``
+
+        .. warning::
+
+            This method is currently implemented so that ALL ``Experiment``
+            instances will stop producing telemetry data. In the future it
+            is planned to have this method work on a "per instance" basis!
+        """
+        self._set_telemetry(False)
+
+    @staticmethod
+    def _set_telemetry(switch: bool, /) -> None:
+        tm_key = "SMARTSIM_FLAG_TELEMETRY"
+        if switch:
+            os.environ[tm_key] = "1"
+        else:
+            os.environ[tm_key] = "0"

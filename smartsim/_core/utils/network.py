@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023 Hewlett Packard Enterprise
+# Copyright (c) 2021-2024 Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,6 @@ def get_ip_from_interface(interface: str) -> str:  # pragma: no cover
     """
     net_if_addrs = psutil.net_if_addrs()
     if interface not in net_if_addrs:
-
         available = list(net_if_addrs.keys())
         raise ValueError(
             f"{interface} is not a valid network interface. "

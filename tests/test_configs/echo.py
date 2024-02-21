@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,27 +24,19 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-from smartsim._core.launcher.cobalt import cobaltParser
-
-
-def test_parse_step_id():
-    output = "JobName      JobId \n" "=====================\n" "smartsim     507975 \n"
-    step_id = cobaltParser.parse_cobalt_step_id(output, "smartsim")
-    assert step_id == "507975"
+import argparse
+import time
 
 
-def test_parse_step_status():
-    output = "JobName      State \n" "=====================\n" "smartsim     running \n"
-    step_id = cobaltParser.parse_cobalt_step_status(output, "smartsim")
-    assert step_id == "running"
+def echo(message: str, sleep_time: int):
+    if sleep_time > 0:
+        time.sleep(sleep_time)
+    print(f"Echoing: {message}")
 
 
-def test_parse_qsub_out():
-    output = (
-        "Job routed to queue 'debug-flat-quad'.\n"
-        "Memory mode set to flat quad for queue debug-flat-quad\n"
-        "507998\n"
-    )
-    step_id = cobaltParser.parse_qsub_out(output)
-    assert step_id == "507998"
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--message", type=str, default="Lorem ipsum")
+    parser.add_argument("--sleep_time", type=int, default=0)
+    args = parser.parse_args()
+    echo(args.message, args.sleep_time)

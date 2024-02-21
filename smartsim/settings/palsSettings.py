@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -183,7 +183,7 @@ class PalsMpiexecSettings(_BaseMPISettings):
         logger.warning("set_walltime not supported under PALS")
 
     def set_gpu_affinity_script(self, affinity: str, *args: t.Any) -> None:
-        """ Set the GPU affinity through a bash script
+        """Set the GPU affinity through a bash script
 
         :param affinity: path to the affinity script
         :type affinity: str

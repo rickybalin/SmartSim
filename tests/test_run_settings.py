@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,9 @@ from smartsim.settings import (
     Singularity,
 )
 from smartsim.settings.settings import create_run_settings
+
+# The tests in this file belong to the slow_tests group
+pytestmark = pytest.mark.slow_tests
 
 
 def test_create_run_settings_local():
@@ -94,7 +97,7 @@ def test_create_run_settings_local():
                         id=f"{l}/orterun",
                     ),
                 )
-                for l in ("local", "pbs", "slurm", "lsf", "cobalt")
+                for l in ("local", "pbs", "slurm", "lsf")
             )
         ),
         # Except for launchers that implement their own MPI settings

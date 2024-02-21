@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,10 @@ from smartsim.settings.mpiSettings import (
     OrterunSettings,
     _BaseMPISettings,
 )
+
+# The tests in this file belong to the group_b group
+pytestmark = pytest.mark.group_b
+
 
 # Throw a warning instead of failing on machines without an MPI implementation
 default_mpi_args = (sys.executable,)
@@ -115,7 +119,6 @@ def test_expected_openmpi_instance_without_warning(
 
 
 def test_error_if_slurm_mpiexec(fileutils):
-
     stubs_path = osp.join("mpi_impl_stubs", "slurm")
     stubs_path = fileutils.get_test_dir_path(stubs_path)
     stub_exe = osp.join(stubs_path, "mpiexec")

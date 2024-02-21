@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 import itertools
 import sys
 import typing as t
-from os import getcwd, getenv, environ
+from os import environ, getcwd, getenv
 from shlex import split as sh_split
 
 import psutil
@@ -40,10 +40,10 @@ from .._core.utils.network import get_ip_from_host
 from ..entity import DBNode, EntityList
 from ..error import SmartSimError, SSConfigError, SSUnsupportedError
 from ..log import get_logger
+from ..servertype import CLUSTERED, STANDALONE
 from ..settings import (
     AprunSettings,
     BsubBatchSettings,
-    CobaltBatchSettings,
     JsrunSettings,
     MpiexecSettings,
     MpirunSettings,
@@ -56,16 +56,13 @@ from ..settings import (
 from ..settings.base import BatchSettings, RunSettings
 from ..settings.settings import create_batch_settings, create_run_settings
 from ..wlm import detect_launcher
-from ..servertype import STANDALONE, CLUSTERED
 
 logger = get_logger(__name__)
-
 
 by_launcher: t.Dict[str, t.List[str]] = {
     "slurm": ["srun", "mpirun", "mpiexec"],
     "pbs": ["aprun", "mpirun", "mpiexec"],
     "pals": ["mpiexec"],
-    "cobalt": ["aprun", "mpirun", "mpiexec"],
     "lsf": ["jsrun"],
     "local": [""],
 }
@@ -156,7 +153,7 @@ class Orchestrator(EntityList[DBNode]):
         run_command: str = "auto",
         db_nodes: int = 1,
         batch: bool = False,
-        hosts: t.Optional[t.List[str]] = None,
+        hosts: t.Optional[t.Union[t.List[str], str]] = None,
         account: t.Optional[str] = None,
         time: t.Optional[str] = None,
         alloc: t.Optional[str] = None,
@@ -187,17 +184,12 @@ class Orchestrator(EntityList[DBNode]):
         :type intra_op_threads: int, optional
         """
         self.launcher, self.run_command = _autodetect(launcher, run_command)
-
         _check_run_command(self.launcher, self.run_command)
         _check_local_constraints(self.launcher, batch)
-
         single_cmd = _get_single_command(self.run_command, batch, single_cmd)
-
-        self.db_identifier = db_identifier
-
         self.ports: t.List[int] = []
-        self.path = getcwd()
         self._hosts: t.List[str] = []
+        self._user_hostlist: t.List[str] = []
         if isinstance(interface, str):
             interface = [interface]
         self._interfaces = interface
@@ -213,8 +205,8 @@ class Orchestrator(EntityList[DBNode]):
             cpus_per_shard = int(kwargs.pop("cpus_per_shard", 4))
 
         super().__init__(
-            db_identifier,
-            self.path,
+            name=db_identifier,
+            path=getcwd(),
             port=port,
             interface=interface,
             db_nodes=db_nodes,
@@ -269,6 +261,15 @@ class Orchestrator(EntityList[DBNode]):
             self._fill_reserved()
 
     @property
+    def db_identifier(self) -> str:
+        """Return the DB identifier, which is common to a DB and all of its nodes
+
+        :return: DB identifier
+        :rtype: str
+        """
+        return self.name
+
+    @property
     def num_shards(self) -> int:
         """Return the number of DB shards contained in the orchestrator.
         This might differ from the number of ``DBNode`` objects, as each
@@ -304,6 +305,15 @@ class Orchestrator(EntityList[DBNode]):
         if not self._hosts:
             self._hosts = self._get_db_hosts()
         return self._hosts
+
+    def reset_hosts(self) -> None:
+        """Clear hosts or reset them to last user choice"""
+        for node in self.entities:
+            node.clear_hosts()
+        self._hosts = []
+        # This is only needed on LSF
+        if self._user_hostlist:
+            self.set_hosts(self._user_hostlist)
 
     def remove_stale_files(self) -> None:
         """Can be used to remove database files of a previous launch"""
@@ -377,7 +387,7 @@ class Orchestrator(EntityList[DBNode]):
         :type num_cpus: int
         """
         if self.batch:
-            if self.launcher in ["pbs", "cobalt"]:
+            if self.launcher == "pbs":
                 if hasattr(self, "batch_settings") and self.batch_settings:
                     if hasattr(self.batch_settings, "set_ncpus"):
                         self.batch_settings.set_ncpus(num_cpus)
@@ -407,7 +417,7 @@ class Orchestrator(EntityList[DBNode]):
         if hasattr(self, "batch_settings") and self.batch_settings:
             self.batch_settings.set_walltime(walltime)
 
-    def set_hosts(self, host_list: t.List[str]) -> None:
+    def set_hosts(self, host_list: t.Union[t.List[str], str]) -> None:
         """Specify the hosts for the ``Orchestrator`` to launch on
 
         :param host_list: list of host (compute node names)
@@ -420,6 +430,7 @@ class Orchestrator(EntityList[DBNode]):
             raise TypeError("host_list argument must be a list of strings")
         if not all(isinstance(host, str) for host in host_list):
             raise TypeError("host_list argument must be list of strings")
+        self._user_hostlist = host_list.copy()
         # TODO check length
         if self.batch:
             if hasattr(self, "batch_settings") and self.batch_settings:
@@ -433,8 +444,7 @@ class Orchestrator(EntityList[DBNode]):
             and isinstance(self.entities[0].run_settings, PalsMpiexecSettings)
             and self.entities[0].is_mpmd
         ):
-            # In this case, --hosts is a global option, we only set it to the
-            # first run command
+            # In this case, --hosts is a global option, set it to first run command
             self.entities[0].run_settings.set_hostlist(host_list)
         else:
             for host, db in zip(host_list, self.entities):
@@ -498,12 +508,10 @@ class Orchestrator(EntityList[DBNode]):
                         mpmd.run_args[arg] = value
 
     def enable_checkpoints(self, frequency: int) -> None:
-        """Sets the database's save configuration to save the
-        DB every 'frequency' seconds given that at least one
-        write operation against the DB occurred in that time.
-        For example, if `frequency` is 900, then the database
-        will save to disk after 900 seconds if there is at least
-        1 change to the dataset.
+        """Sets the database's save configuration to save the DB every 'frequency'
+        seconds given that at least one write operation against the DB occurred in
+        that time. E.g., if `frequency` is 900, then the database will save to disk
+        after 900 seconds if there is at least 1 change to the dataset.
 
         :param frequency: the given number of seconds before the DB saves
         :type frequency: int
@@ -524,7 +532,6 @@ class Orchestrator(EntityList[DBNode]):
 
         :param mem: the desired max memory size e.g. 3gb
         :type mem: str
-
         :raises SmartSimError: If 'mem' is an invalid memory value
         :raises SmartSimError: If database is not active
         """
@@ -537,7 +544,6 @@ class Orchestrator(EntityList[DBNode]):
         :param strategy: The max memory policy to use
             e.g. "volatile-lru", "allkeys-lru", etc.
         :type strategy: str
-
         :raises SmartSimError: If 'strategy' is an invalid maxmemory policy
         :raises SmartSimError: If database is not active
         """
@@ -567,7 +573,7 @@ class Orchestrator(EntityList[DBNode]):
         """
         self.set_db_conf("proto-max-bulk-len", str(size))
 
-    def set_db_conf(self, key: str, value: t.Union[int, str]) -> None:
+    def set_db_conf(self, key: str, value: str) -> None:
         """Set any valid configuration at runtime without the need
         to restart the database. All configuration parameters
         that are set are immediately loaded by the database and
@@ -687,10 +693,9 @@ class Orchestrator(EntityList[DBNode]):
         run_args: t.Optional[t.Dict[str, t.Any]] = None,
         cpus_per_shard: t.Optional[int] = None,
         gpus_per_shard: t.Optional[int] = None,
-        **_kwargs: t.Any  # Needed to ensure no API break and do not want to
+        **_kwargs: t.Any,  # Needed to ensure no API break and do not want to
         # introduce that possibility, even if this method is
         # protected, without running the test suite.
-        # TODO: Test against an LSF system before merge!
     ) -> t.Optional[JsrunSettings]:
         run_args = {} if run_args is None else run_args
         erf_rs: t.Optional[JsrunSettings] = None
@@ -734,9 +739,6 @@ class Orchestrator(EntityList[DBNode]):
 
         return erf_rs
 
-    # Old pylint from TF 2.6.x does not understand that this argument list is
-    # equivalent to `(self, **kwargs)`
-    # # pylint: disable-next=arguments-differ
     def _initialize_entities(
         self,
         *,
@@ -771,7 +773,6 @@ class Orchestrator(EntityList[DBNode]):
                 start_script_args = self._get_start_script_args(
                     db_node_name, port, cluster
                 )
-
                 # if only launching 1 db per command, we don't need a
                 # list of exe args lists
                 run_settings = self._build_run_settings(
@@ -784,7 +785,7 @@ class Orchestrator(EntityList[DBNode]):
                     run_settings,
                     [port],
                     [db_node_name + ".out"],
-                    self.name,
+                    self.db_identifier,
                 )
                 self.entities.append(node)
 
@@ -794,7 +795,7 @@ class Orchestrator(EntityList[DBNode]):
         self, *, db_nodes: int = 1, port: int = 6379, **kwargs: t.Any
     ) -> None:
         cluster = db_nodes >= 3
-
+        mpmd_node_name = self.name + "_0"
         exe_args_mpmd: t.List[t.List[str]] = []
 
         for db_id in range(db_nodes):
@@ -806,9 +807,7 @@ class Orchestrator(EntityList[DBNode]):
             )
             exe_args = " ".join(start_script_args)
             exe_args_mpmd.append(sh_split(exe_args))
-
         run_settings: t.Optional[RunSettings] = None
-
         if self.launcher == "lsf":
             run_settings = self._build_run_settings_lsf(
                 sys.executable, exe_args_mpmd, db_nodes=db_nodes, port=port, **kwargs
@@ -818,14 +817,18 @@ class Orchestrator(EntityList[DBNode]):
             run_settings = self._build_run_settings(
                 sys.executable, exe_args_mpmd, db_nodes=db_nodes, port=port, **kwargs
             )
-            output_files = [self.name + ".out"]
-
+            output_files = [mpmd_node_name + ".out"]
         if not run_settings:
             raise ValueError(f"Could not build run settings for {self.launcher}")
-
-        node = DBNode(self.name, self.path, run_settings, [port], output_files)
+        node = DBNode(
+            mpmd_node_name,
+            self.path,
+            run_settings,
+            [port],
+            output_files,
+            db_identifier=self.db_identifier,
+        )
         self.entities.append(node)
-
         self.ports = [port]
 
     def _get_start_script_args(
@@ -932,17 +935,6 @@ class Orchestrator(EntityList[DBNode]):
             "w",
             "chdir",
             "D",
-        ]
-        self._reserved_batch_args[CobaltBatchSettings] = [
-            "cwd",
-            "error",
-            "e",
-            "output",
-            "o",
-            "outputprefix",
-            "N",
-            "l",
-            "jobname",
         ]
         self._reserved_batch_args[QsubBatchSettings] = ["e", "o", "N", "l"]
         self._reserved_run_args[JsrunSettings] = [

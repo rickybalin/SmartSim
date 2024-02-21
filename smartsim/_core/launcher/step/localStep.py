@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,17 +28,22 @@ import os
 import shutil
 import typing as t
 
-from .step import Step
-from ....settings.base import RunSettings
 from ....settings import Singularity
+from ....settings.base import RunSettings
+from .step import Step, proxyable_launch_cmd
 
 
 class LocalStep(Step):
     def __init__(self, name: str, cwd: str, run_settings: RunSettings):
         super().__init__(name, cwd, run_settings)
         self.run_settings = run_settings
-        self.env = self._set_env()
+        self._env = self._set_env()
 
+    @property
+    def env(self) -> t.Dict[str, str]:
+        return self._env
+
+    @proxyable_launch_cmd
     def get_launch_cmd(self) -> t.List[str]:
         cmd = []
 

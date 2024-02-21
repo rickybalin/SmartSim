@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,14 +31,12 @@ from smartsim import Client
 
 
 def create_data(seed, size):
-
     np.random.seed(seed)
     x = np.random.uniform(-15.0, 15.0, size=size)
     return x
 
 
 if __name__ == "__main__":
-
     import argparse
 
     argparser = argparse.ArgumentParser()

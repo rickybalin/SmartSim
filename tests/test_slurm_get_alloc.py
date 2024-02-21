@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,12 +24,16 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import pytest
 
 from smartsim.slurm import _get_alloc_cmd
 
+# The tests in this file belong to the group_b group
+pytestmark = pytest.mark.group_b
+
 
 def test_get_alloc_format():
-    time = "10:00:00"
+    time = "10:00:70"
     nodes = 5
     account = "A35311"
     options = {"ntasks-per-node": 5}
@@ -41,7 +45,7 @@ def test_get_alloc_format():
         "-J",
         "SmartSim",
         "-t",
-        "10:00:00",
+        "10:01:10",
         "-A",
         "A35311",
         "--ntasks-per-node=5",

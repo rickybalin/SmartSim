@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,21 +35,20 @@ ENV TZ=US/Seattle
 RUN useradd --system --create-home --shell /bin/bash -g root -G sudo craylabs && \
     apt-get update \
     && apt-get install --no-install-recommends -y build-essential \
-    git gcc make git-lfs wget libopenmpi-dev openmpi-bin \
-    python3-pip python3 python3-dev cmake \
+    git gcc make git-lfs wget libopenmpi-dev openmpi-bin unzip \
+    python3.9 python3.9-dev python3-pip cmake \
     && rm -rf /var/lib/apt/lists/* \
-    && ln -s /usr/bin/python3 /usr/bin/python
+    && ln -s /usr/bin/python3.9 /usr/bin/python
 
 WORKDIR /home/craylabs
 COPY --chown=craylabs:root ./tutorials/ /home/craylabs/tutorials/
 
 USER craylabs
-RUN python -m pip install smartsim[ml]==0.5.1 jupyter jupyterlab matplotlib && \
+RUN export PATH=/home/craylabs/.local/bin:$PATH && \
     echo "export PATH=/home/craylabs/.local/bin:$PATH" >> /home/craylabs/.bashrc && \
-    export PATH=/home/craylabs/.local/bin:$PATH && \
+    python -m pip install smartsim[ml]==0.6.2 jupyter jupyterlab matplotlib && \
     smart build --device cpu -v && \
     chown craylabs:root -R /home/craylabs/.local && \
     rm -rf ~/.cache/pip
 
-# remove non-jupyter notebook tutorials
 CMD ["/bin/bash", "-c", "PATH=/home/craylabs/.local/bin:$PATH /home/craylabs/.local/bin/jupyter lab --port 8888 --no-browser --ip=0.0.0.0"]

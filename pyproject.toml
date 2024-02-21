@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 88
-target-version = ['py37', 'py38']
+target-version = ['py38', 'py39', 'py310']
 exclude = '''
 (
   | \.egg
@@ -51,6 +51,11 @@ exclude = '''
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_level = "debug"
+markers = [
+  "group_a: fast test subset a",
+  "group_b: fast test subset b",
+  "slow_tests: tests that take a long duration to complete",
+]
 
 [tool.isort]
 # supress circular import warning
@@ -86,22 +91,37 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 
+# Probably Unintended Branches/Blocks
+# warn_unreachable = true
+
 # Safety/Upgrading Mypy
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_unused_configs = true
 show_error_codes = true
 
+# Misc Strictness Settings
+strict_concatenate = false
+strict_equality = true
+
+# Additional Error Codes
+enable_error_code = [
+    # "redundant-expr",
+    # "possibly-undefined",
+    # "unused-awaitable",
+    # "ignore-without-code",
+    # "mutable-override",
+]
+
 [[tool.mypy.overrides]]
 # Ignore packages that are not used or not typed
 module = [
   "coloredlogs",
-  "smartredis",
-  "smartredis.error",
   "redis.cluster",
   "keras",
   "torch",
   "smartsim.ml.torch.*",            # must solve/ignore inheritance issues
+  "watchdog",
 ]
 ignore_missing_imports = true
 ignore_errors = true

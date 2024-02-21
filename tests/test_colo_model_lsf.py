@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,10 +28,13 @@ import sys
 
 import pytest
 
+import smartsim.settings.base
 from smartsim import Experiment
 from smartsim.entity import Model
-import smartsim.settings.base
 from smartsim.settings.lsfSettings import JsrunSettings
+
+# The tests in this file belong to the group_a group
+pytestmark = pytest.mark.group_a
 
 
 is_mac = sys.platform == "darwin"

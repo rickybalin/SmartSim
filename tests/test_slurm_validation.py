@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,10 @@ import pytest
 
 from smartsim.error.errors import LauncherError
 from smartsim.slurm import _get_system_partition_info, get_default_partition, validate
+
+# The tests in this file belong to the group_b group
+pytestmark = pytest.mark.group_b
+
 
 # retrieved from pytest fixtures
 if pytest.test_launcher != "slurm":

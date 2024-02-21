@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,12 @@ logger = get_logger(__name__)
 
 
 class StepMap:
-    def __init__(self,
-                 step_id: t.Optional[str] = None,
-                 task_id: t.Optional[str] = None,
-                 managed: t.Optional[bool] = None) -> None:
+    def __init__(
+        self,
+        step_id: t.Optional[str] = None,
+        task_id: t.Optional[str] = None,
+        managed: t.Optional[bool] = None,
+    ) -> None:
         self.step_id = step_id
         self.task_id = task_id
         self.managed = managed

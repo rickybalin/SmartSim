@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@ if pytest.test_launcher not in pytest.wlm_options:
     pytestmark = pytest.mark.skip(reason="Not testing WLM integrations")
 
 
-def test_mpmd(fileutils, wlmutils):
+def test_mpmd(fileutils, test_dir, wlmutils):
     """Run an MPMD model twice
 
     and check that it always gets executed the same way.
@@ -48,9 +48,9 @@ def test_mpmd(fileutils, wlmutils):
     exp_name = "test-mpmd"
     launcher = wlmutils.get_test_launcher()
     # MPMD is supported in LSF, but the test for it is different
-    mpmd_supported = ["slurm", "pbs", "cobalt"]
+    mpmd_supported = ["slurm", "pbs"]
     if launcher not in mpmd_supported:
-        pytest.skip("Test requires Slurm, PBS, or Cobalt to run")
+        pytest.skip("Test requires Slurm, or PBS to run")
 
     # aprun returns an error if the launched app is not an MPI exec
     # as we do not want to add mpi4py as a dependency, we prefer to
@@ -58,10 +58,9 @@ def test_mpmd(fileutils, wlmutils):
     by_launcher = {
         "slurm": ["srun", "mpirun"],
         "pbs": ["mpirun"],
-        "cobalt": ["mpirun"],
     }
 
-    exp = Experiment(exp_name, launcher=launcher)
+    exp = Experiment(exp_name, launcher=launcher, exp_path=test_dir)
 
     def prune_commands(launcher):
         available_commands = []
@@ -77,7 +76,6 @@ def test_mpmd(fileutils, wlmutils):
             f"MPMD on {launcher} only supported for run commands {by_launcher[launcher]}"
         )
 
-    test_dir = fileutils.make_test_dir()
     for run_command in run_commands:
         script = fileutils.get_test_conf_path("sleep.py")
         settings = exp.create_run_settings(

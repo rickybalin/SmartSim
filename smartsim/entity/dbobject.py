@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,16 +25,18 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import typing as t
-
 from pathlib import Path
+
 from .._core.utils import init_default
 from ..error import SSUnsupportedError
-
 
 __all__ = ["DBObject", "DBModel", "DBScript"]
 
 
-class DBObject:
+_DBObjectFuncT = t.TypeVar("_DBObjectFuncT", str, bytes)
+
+
+class DBObject(t.Generic[_DBObjectFuncT]):
     """Base class for ML objects residing on DB. Should not
     be instantiated.
     """
@@ -42,17 +44,17 @@ class DBObject:
     def __init__(
         self,
         name: str,
-        func: t.Optional[str],
+        func: t.Optional[_DBObjectFuncT],
         file_path: t.Optional[str],
         device: t.Literal["CPU", "GPU"],
         devices_per_node: int,
         first_device: int,
     ) -> None:
         self.name = name
-        self.func = func
-        self.file: t.Optional[
-            Path
-        ] = None  # Need to have this explicitly to check on it
+        self.func: t.Optional[_DBObjectFuncT] = func
+        self.file: t.Optional[Path] = (
+            None  # Need to have this explicitly to check on it
+        )
         if file_path:
             self.file = self._check_filepath(file_path)
         self.device = self._check_device(device)
@@ -66,9 +68,7 @@ class DBObject:
 
     @property
     def is_file(self) -> bool:
-        if self.func:
-            return False
-        return True
+        return not self.func
 
     @staticmethod
     def _check_tensor_args(
@@ -130,7 +130,9 @@ class DBObject:
 
     @staticmethod
     def _check_devices(
-        device: t.Literal["CPU", "GPU"], devices_per_node: int, first_device: int,
+        device: t.Literal["CPU", "GPU"],
+        devices_per_node: int,
+        first_device: int,
     ) -> None:
         if device == "CPU" and devices_per_node > 1:
             raise SSUnsupportedError(
@@ -152,7 +154,7 @@ class DBObject:
             raise ValueError(msg)
 
 
-class DBScript(DBObject):
+class DBScript(DBObject[str]):
     def __init__(
         self,
         name: str,
@@ -213,12 +215,12 @@ class DBScript(DBObject):
         return desc_str
 
 
-class DBModel(DBObject):
+class DBModel(DBObject[bytes]):
     def __init__(
         self,
         name: str,
         backend: str,
-        model: t.Optional[str] = None,
+        model: t.Optional[bytes] = None,
         model_file: t.Optional[str] = None,
         device: t.Literal["CPU", "GPU"] = "CPU",
         devices_per_node: int = 1,
@@ -263,7 +265,8 @@ class DBModel(DBObject):
         :type outputs: list[str], optional
         """
         super().__init__(
-            name, model, model_file, device, devices_per_node, first_device)
+            name, model, model_file, device, devices_per_node, first_device
+        )
         self.backend = self._check_backend(backend)
         if not model and not model_file:
             raise ValueError("Either model or model_file must be provided")
@@ -274,7 +277,7 @@ class DBModel(DBObject):
         self.inputs, self.outputs = self._check_tensor_args(inputs, outputs)
 
     @property
-    def model(self) -> t.Union[str, None]:
+    def model(self) -> t.Optional[bytes]:
         return self.func
 
     def __str__(self) -> str:

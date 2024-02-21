@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
 
 import argparse
 import os
+import platform
 import sys
 import typing as t
 from pathlib import Path
@@ -60,14 +61,6 @@ _TPinningStr = t.Literal["==", "!=", ">=", ">", "<=", "<", "~="]
 
 def check_py_onnx_version(versions: Versioner) -> None:
     """Check Python environment for ONNX installation"""
-    if not versions.ONNX:
-        py_version = sys.version_info
-        msg = (
-            "An onnx wheel is not available for "
-            f"Python {py_version.major}.{py_version.minor}. "
-            "Instead consider using Python 3.8 or 3.9 for ONNX 1.11 support"
-        )
-        raise SetupError(msg)
     _check_packages_in_python_env(
         {
             "onnx": Version_(versions.ONNX),
@@ -121,7 +114,12 @@ def build_database(
     # check database installation
     database_name = "KeyDB" if keydb else "Redis"
     database_builder = builder.DatabaseBuilder(
-        build_env(), build_env.MALLOC, build_env.JOBS, verbose
+        build_env(),
+        jobs=build_env.JOBS,
+        _os=builder.OperatingSystem.from_str(platform.system()),
+        architecture=builder.Architecture.from_str(platform.machine()),
+        malloc=build_env.MALLOC,
+        verbose=verbose,
     )
     if not database_builder.is_built:
         logger.info(
@@ -153,7 +151,7 @@ def build_redis_ai(
     backends_table = [
         ["PyTorch", versions.TORCH, color_bool(use_torch)],
         ["TensorFlow", versions.TENSORFLOW, color_bool(use_tf)],
-        ["ONNX", versions.ONNX or "Unavailable", color_bool(use_onnx)],
+        ["ONNX", versions.ONNX, color_bool(use_onnx)],
     ]
     print(tabulate(backends_table, tablefmt="fancy_outline"), end="\n\n")
     print(f"Building for GPU support: {color_bool(device == 'gpu')}\n")
@@ -181,12 +179,14 @@ def build_redis_ai(
 
     rai_builder = builder.RedisAIBuilder(
         build_env=build_env_dict,
+        jobs=build_env.JOBS,
+        _os=builder.OperatingSystem.from_str(platform.system()),
+        architecture=builder.Architecture.from_str(platform.machine()),
         torch_dir=str(torch_dir) if torch_dir else "",
         libtf_dir=str(libtf_dir) if libtf_dir else "",
         build_torch=use_torch,
         build_tf=use_tf,
         build_onnx=use_onnx,
-        jobs=build_env.JOBS,
         verbose=verbose,
     )
 
@@ -226,9 +226,10 @@ def build_redis_ai(
         logger.info("ML Backends and RedisAI build complete!")
 
 
-def check_py_torch_version(versions: Versioner, device: _TDeviceStr = "cpu") -> None:
+def check_py_torch_version(versions: Versioner, device_in: _TDeviceStr = "cpu") -> None:
     """Check Python environment for TensorFlow installation"""
 
+    device = device_in.lower()
     if BuildEnv.is_macos():
         if device == "gpu":
             raise BuildError("SmartSim does not support GPU on MacOS")
@@ -260,10 +261,11 @@ def check_py_torch_version(versions: Versioner, device: _TDeviceStr = "cpu") -> 
             "Torch version not found in python environment. "
             "Attempting to install via `pip`"
         )
+        wheel_device = device if device == "cpu" else device_suffix.replace("+", "")
         pip(
             "install",
-            "-f",
-            "https://download.pytorch.org/whl/torch_stable.html",
+            "--extra-index-url",
+            f"https://download.pytorch.org/whl/{wheel_device}",
             *(f"{package}=={version}" for package, version in torch_deps.items()),
         )
     elif missing or conflicts:
@@ -340,8 +342,8 @@ def _format_incompatible_python_env_message(
     missing: t.Iterable[str], conflicting: t.Iterable[str]
 ) -> str:
     indent = "\n\t"
-    fmt_list: t.Callable[[str, t.Iterable[str]], str] = (
-        lambda n, l: f"{n}:{indent}{indent.join(l)}" if l else ""
+    fmt_list: t.Callable[[str, t.Iterable[str]], str] = lambda n, l: (
+        f"{n}:{indent}{indent.join(l)}" if l else ""
     )
     missing_str = fmt_list("Missing", missing)
     conflict_str = fmt_list("Conflicting", conflicting)
@@ -356,7 +358,9 @@ def _format_incompatible_python_env_message(
     )
 
 
-def execute(args: argparse.Namespace) -> int:
+def execute(
+    args: argparse.Namespace, _unparsed_args: t.Optional[t.List[str]] = None, /
+) -> int:
     verbose = args.v
     keydb = args.keydb
     device: _TDeviceStr = args.device
@@ -416,7 +420,7 @@ def execute(args: argparse.Namespace) -> int:
             )
     except (SetupError, BuildError) as e:
         logger.error(str(e))
-        return 1
+        return os.EX_SOFTWARE
 
     backends = installed_redisai_backends()
     backends_str = ", ".join(s.capitalize() for s in backends) if backends else "No"
@@ -431,10 +435,10 @@ def execute(args: argparse.Namespace) -> int:
             check_py_onnx_version(versions)
     except (SetupError, BuildError) as e:
         logger.error(str(e))
-        return 1
+        return os.EX_SOFTWARE
 
     logger.info("SmartSim build complete!")
-    return 0
+    return os.EX_OK
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> None:

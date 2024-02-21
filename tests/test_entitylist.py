@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,9 @@ import pytest
 from smartsim import Experiment
 from smartsim.entity import EntityList
 from smartsim.settings import RunSettings
+
+# The tests in this file belong to the group_a group
+pytestmark = pytest.mark.group_a
 
 
 def test_entity_list_init():

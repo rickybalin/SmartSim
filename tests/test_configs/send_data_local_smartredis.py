@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ def main():
     returned = client.get_tensor("test_array")
 
     np.testing.assert_array_equal(array, returned)
-    print(f"Test worked! Sent and received array: {str(array)}")
+    print(f"Test worked! Sent {str(array)} and received {str(returned)}")
 
 
 if __name__ == "__main__":

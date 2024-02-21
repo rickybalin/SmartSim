@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,9 @@ import psutil
 import pytest
 
 from smartsim._core.launcher.util.shell import *
+
+# The tests in this file belong to the group_b group
+pytestmark = pytest.mark.group_b
 
 
 def test_execute_cmd():

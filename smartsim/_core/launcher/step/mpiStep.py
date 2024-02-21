@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2023, Hewlett Packard Enterprise
+# Copyright (c) 2021-2024, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,14 @@
 
 import os
 import shutil
-from shlex import split as sh_split
 import typing as t
+from shlex import split as sh_split
 
 from ....error import AllocationError, SmartSimError
 from ....log import get_logger
-from .step import Step
-from ....settings import MpirunSettings, MpiexecSettings, OrterunSettings
+from ....settings import MpiexecSettings, MpirunSettings, OrterunSettings
 from ....settings.base import RunSettings
+from .step import Step, proxyable_launch_cmd
 
 logger = get_logger(__name__)
 
@@ -57,8 +57,9 @@ class _BaseMPIStep(Step):
             self._set_alloc()
         self.run_settings = run_settings
 
-    _supported_launchers = ["PBS", "COBALT", "SLURM", "LSB"]
+    _supported_launchers = ["PBS", "SLURM", "LSB"]
 
+    @proxyable_launch_cmd
     def get_launch_cmd(self) -> t.List[str]:
         """Get the command to launch this step
 
@@ -118,7 +119,8 @@ class _BaseMPIStep(Step):
 
     def _get_mpmd(self) -> t.List[RunSettings]:
         """Temporary convenience function to return a typed list
-        of attached RunSettings"""
+        of attached RunSettings
+        """
         if hasattr(self.run_settings, "mpmd") and self.run_settings.mpmd:
             rs_mpmd: t.List[RunSettings] = self.run_settings.mpmd
             return rs_mpmd
