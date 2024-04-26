@@ -28,7 +28,9 @@
 A file of helper functions for SmartSim
 """
 import base64
+import collections.abc
 import os
+import signal
 import typing as t
 import uuid
 from datetime import datetime
@@ -38,16 +40,19 @@ from shutil import which
 
 from smartsim._core._install.builder import TRedisAIBackendStr as _TRedisAIBackendStr
 
+if t.TYPE_CHECKING:
+    from types import FrameType
+
+
+_TSignalHandlerFn = t.Callable[[int, t.Optional["FrameType"]], object]
+
 
 def unpack_db_identifier(db_id: str, token: str) -> t.Tuple[str, str]:
     """Unpack the unformatted database identifier
     and format for env variable suffix using the token
     :param db_id: the unformatted database identifier eg. identifier_1
-    :type db_id: str
     :param token: character to use to construct the db suffix
-    :type token: str
     :return: db id suffix and formatted db_id e.g. ("_identifier_1", "identifier_1")
-    :rtype: (str, str)
     """
 
     if db_id == "orchestrator":
@@ -58,10 +63,9 @@ def unpack_db_identifier(db_id: str, token: str) -> t.Tuple[str, str]:
 
 def unpack_colo_db_identifier(db_id: str) -> str:
     """Create database identifier suffix for colocated database
+
     :param db_id: the unformatted database identifier
-    :type db_id: str
     :return: db suffix
-    :rtype: str
     """
     return "_" + db_id if db_id else ""
 
@@ -92,10 +96,9 @@ def fmt_dict(value: t.Dict[str, t.Any]) -> str:
 
 def get_base_36_repr(positive_int: int) -> str:
     """Converts a positive integer to its base 36 representation
+
     :param positive_int: the positive integer to convert
-    :type positive_int: int
     :return: base 36 representation of the given positive int
-    :rtype: str
     """
     digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     result = []
@@ -108,23 +111,10 @@ def get_base_36_repr(positive_int: int) -> str:
     return "".join(reversed(result))
 
 
-def init_default(
-    default: t.Any,
-    init_value: t.Any,
-    expected_type: t.Union[t.Type[t.Any], t.Tuple[t.Type[t.Any], ...], None] = None,
-) -> t.Any:
-    if init_value is None:
-        return default
-    if expected_type is not None and not isinstance(init_value, expected_type):
-        raise TypeError(f"Argument was of type {type(init_value)}, not {expected_type}")
-    return init_value
-
-
 def expand_exe_path(exe: str) -> str:
     """Takes an executable and returns the full path to that executable
 
     :param exe: executable or file
-    :type exe: str
     :raises TypeError: if file is not an executable
     :raises FileNotFoundError: if executable cannot be found
     """
@@ -186,9 +176,7 @@ def colorize(
 def delete_elements(dictionary: t.Dict[str, t.Any], key_list: t.List[str]) -> None:
     """Delete elements from a dictionary.
     :param dictionary: the dictionary from which the elements must be deleted.
-    :type dictionary: dict
     :param key_list: the list of keys to delete from the dictionary.
-    :type key: any
     """
     for key in key_list:
         if key in dictionary:
@@ -213,9 +201,7 @@ def cat_arg_and_value(arg_name: str, value: str) -> str:
       `-arg_name=value` (i.e., `-a val`)
 
     :param arg_name: the command line argument name
-    :type arg_name: str
     :param value: the command line argument value
-    :type value: str
     """
 
     if arg_name.startswith("--"):
@@ -259,10 +245,8 @@ def installed_redisai_backends(
     the backend directories (`redisai_tensorflow`, `redisai_torch`,
     `redisai_onnxruntime`, or `redisai_tflite`).
 
-    :param backends_path: path containing backends, defaults to None
-    :type backends_path: str, optional
+    :param backends_path: path containing backends
     :return: list of installed RedisAI backends
-    :rtype: set[str]
     """
     # import here to avoid circular import
     base_path = redis_install_base(backends_path)
@@ -276,9 +260,9 @@ def installed_redisai_backends(
     return {backend for backend in backends if _installed(base_path, backend)}
 
 
-def get_ts() -> int:
-    """Return the current timestamp (accurate to seconds) cast to an integer"""
-    return int(datetime.timestamp(datetime.now()))
+def get_ts_ms() -> int:
+    """Return the current timestamp (accurate to milliseconds) cast to an integer"""
+    return int(datetime.now().timestamp() * 1000)
 
 
 def encode_cmd(cmd: t.List[str]) -> str:
@@ -302,3 +286,83 @@ def decode_cmd(encoded_cmd: str) -> t.List[str]:
     cleaned_cmd = decoded_cmd.decode("ascii").split("|")
 
     return cleaned_cmd
+
+
+@t.final
+class SignalInterceptionStack(collections.abc.Collection[_TSignalHandlerFn]):
+    """Registers a stack of callables to be called when a signal is
+    received before calling the original signal handler.
+    """
+
+    def __init__(
+        self,
+        signalnum: int,
+        callbacks: t.Optional[t.Iterable[_TSignalHandlerFn]] = None,
+    ) -> None:
+        """Set up a ``SignalInterceptionStack`` for particular signal number.
+
+        .. note::
+            This class typically should not be instanced directly as it will
+            change the registered signal handler regardless of if a signal
+            interception stack is already present. Instead, it is generally
+            best to create or get a signal interception stack for a particular
+            signal number via the `get` factory method.
+
+        :param signalnum: The signal number to intercept
+        :param callbacks: A iterable of functions to call upon receiving the signal
+        """
+        self._callbacks = list(callbacks) if callbacks else []
+        self._original = signal.signal(signalnum, self)
+
+    def __call__(self, signalnum: int, frame: t.Optional["FrameType"]) -> None:
+        """Handle the signal on which the interception stack was registered.
+        End by calling the originally registered signal hander (if present).
+
+        :param frame: The current stack frame
+        """
+        for fn in self:
+            fn(signalnum, frame)
+        if callable(self._original):
+            self._original(signalnum, frame)
+
+    def __contains__(self, obj: object) -> bool:
+        return obj in self._callbacks
+
+    def __iter__(self) -> t.Iterator[_TSignalHandlerFn]:
+        return reversed(self._callbacks)
+
+    def __len__(self) -> int:
+        return len(self._callbacks)
+
+    @classmethod
+    def get(cls, signalnum: int) -> "SignalInterceptionStack":
+        """Fetch an existing ``SignalInterceptionStack`` or create a new one
+        for a particular signal number.
+
+        :param signalnum: The singal number of the signal interception stack
+                          should be registered
+        :returns: The existing or created signal interception stack
+        """
+        handler = signal.getsignal(signalnum)
+        if isinstance(handler, cls):
+            return handler
+        return cls(signalnum, [])
+
+    def push(self, fn: _TSignalHandlerFn) -> None:
+        """Add a callback to the signal interception stack.
+
+        :param fn: A callable to add to the unique signal stack
+        """
+        self._callbacks.append(fn)
+
+    def push_unique(self, fn: _TSignalHandlerFn) -> bool:
+        """Add a callback to the signal interception stack if and only if the
+        callback is not already present.
+
+        :param fn: A callable to add to the unique signal stack
+        :returns: True if the callback was added, False if the callback was
+                  already present
+        """
+        if did_push := fn not in self:
+            self.push(fn)
+        return did_push

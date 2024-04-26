@@ -29,12 +29,13 @@ import sys
 
 import pytest
 
-from smartsim import Experiment, status
+from smartsim import Experiment
 from smartsim._core.utils import installed_redisai_backends
 from smartsim.entity import Ensemble
 from smartsim.entity.dbobject import DBModel
 from smartsim.error.errors import SSUnsupportedError
 from smartsim.log import get_logger
+from smartsim.status import SmartSimStatus
 
 logger = get_logger(__name__)
 
@@ -218,7 +219,7 @@ def test_tf_db_model(fileutils, test_dir, wlmutils, mlutils):
         exp.start(db, smartsim_model, block=True)
         statuses = exp.get_status(smartsim_model)
         assert all(
-            stat == status.STATUS_COMPLETED for stat in statuses
+            stat == SmartSimStatus.STATUS_COMPLETED for stat in statuses
         ), f"Statuses: {statuses}"
     finally:
         exp.stop(db)
@@ -285,7 +286,7 @@ def test_pt_db_model(fileutils, test_dir, wlmutils, mlutils):
         exp.start(db, smartsim_model, block=True)
         statuses = exp.get_status(smartsim_model)
         assert all(
-            stat == status.STATUS_COMPLETED for stat in statuses
+            stat == SmartSimStatus.STATUS_COMPLETED for stat in statuses
         ), f"Statuses: {statuses}"
     finally:
         exp.stop(db)
@@ -386,7 +387,7 @@ def test_db_model_ensemble(fileutils, test_dir, wlmutils, mlutils):
         exp.start(db, smartsim_ensemble, block=True)
         statuses = exp.get_status(smartsim_ensemble)
         assert all(
-            stat == status.STATUS_COMPLETED for stat in statuses
+            stat == SmartSimStatus.STATUS_COMPLETED for stat in statuses
         ), f"Statuses: {statuses}"
     finally:
         exp.stop(db)
@@ -458,7 +459,7 @@ def test_colocated_db_model_tf(fileutils, test_dir, wlmutils, mlutils):
         exp.start(colo_model, block=True)
         statuses = exp.get_status(colo_model)
         assert all(
-            stat == status.STATUS_COMPLETED for stat in statuses
+            stat == SmartSimStatus.STATUS_COMPLETED for stat in statuses
         ), f"Statuses: {statuses}"
     finally:
         exp.stop(colo_model)
@@ -518,7 +519,7 @@ def test_colocated_db_model_pytorch(fileutils, test_dir, wlmutils, mlutils):
         exp.start(colo_model, block=True)
         statuses = exp.get_status(colo_model)
         assert all(
-            stat == status.STATUS_COMPLETED for stat in statuses
+            stat == SmartSimStatus.STATUS_COMPLETED for stat in statuses
         ), f"Statuses: {statuses}"
     finally:
         exp.stop(colo_model)
@@ -557,7 +558,6 @@ def test_colocated_db_model_ensemble(fileutils, test_dir, wlmutils, mlutils):
 
     # Create a third model with a colocated database
     colo_model = exp.create_model("colocated_model", colo_settings)
-    colo_model.set_path(test_dir)
     colo_model.colocate_db_tcp(
         port=test_port, db_cpus=1, debug=True, ifname=test_interface
     )
@@ -620,7 +620,7 @@ def test_colocated_db_model_ensemble(fileutils, test_dir, wlmutils, mlutils):
         exp.start(colo_ensemble, block=True)
         statuses = exp.get_status(colo_ensemble)
         assert all(
-            stat == status.STATUS_COMPLETED for stat in statuses
+            stat == SmartSimStatus.STATUS_COMPLETED for stat in statuses
         ), f"Statuses: {statuses}"
     finally:
         exp.stop(colo_ensemble)
@@ -724,7 +724,7 @@ def test_colocated_db_model_ensemble_reordered(fileutils, test_dir, wlmutils, ml
         exp.start(colo_ensemble, block=True)
         statuses = exp.get_status(colo_ensemble)
         assert all(
-            stat == status.STATUS_COMPLETED for stat in statuses
+            stat == SmartSimStatus.STATUS_COMPLETED for stat in statuses
         ), f"Statuses: {statuses}"
     finally:
         exp.stop(colo_ensemble)
@@ -756,7 +756,6 @@ def test_colocated_db_model_errors(fileutils, test_dir, wlmutils, mlutils):
 
     # Create colocated SmartSim Model
     colo_model = exp.create_model("colocated_model", colo_settings)
-    colo_model.set_path(test_dir)
     colo_model.colocate_db_tcp(
         port=test_port, db_cpus=1, debug=True, ifname=test_interface
     )
@@ -813,7 +812,6 @@ def test_colocated_db_model_errors(fileutils, test_dir, wlmutils, mlutils):
     colo_ensemble2 = exp.create_ensemble(
         "colocated_ens", run_settings=colo_settings2, replicas=2
     )
-    colo_ensemble2.set_path(test_dir)
     colo_ensemble2.add_ml_model(
         "cnn",
         "TF",

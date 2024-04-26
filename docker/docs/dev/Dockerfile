@@ -24,7 +24,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 LABEL maintainer="Cray Labs"
 
@@ -57,10 +57,5 @@ RUN git clone https://github.com/CrayLabs/SmartDashboard.git --branch develop --
 # Install docs dependencies and SmartSim
 RUN python -m pip install -r doc/requirements-doc.txt \
     && NO_CHECKS=1 SMARTSIM_SUFFIX=dev python -m pip install .
-
-RUN mkdir -p doc/tutorials/ \
-    && cd doc/tutorials/ \
-    && rm -rf * \
-    && ln -s ../../tutorials/* .
 
 RUN make docs
