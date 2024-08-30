@@ -127,7 +127,7 @@ class PBSLauncher(WLMLauncher):
 
         self.step_mapping.add(step.name, step_id, task_id, step.managed)
 
-        return step_id
+        return step_id, task_id
 
     def stop(self, step_name: str) -> StepInfo:
         """Stop/cancel a job step

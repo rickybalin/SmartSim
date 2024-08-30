@@ -235,12 +235,13 @@ class Experiment:
         :param kill_on_interrupt: flag for killing jobs when ^C (SIGINT)
                                   signal is received.
         """
+        task_id = 0
         start_manifest = Manifest(*args)
         self._create_entity_dir(start_manifest)
         try:
             if summary:
                 self._launch_summary(start_manifest)
-            self._control.start(
+            task_id = self._control.start(
                 exp_name=self.name,
                 exp_path=self.exp_path,
                 manifest=start_manifest,
@@ -250,6 +251,8 @@ class Experiment:
         except SmartSimError as e:
             logger.error(e)
             raise
+
+        return task_id
 
     @_contextualize
     def stop(

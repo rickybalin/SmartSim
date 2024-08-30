@@ -134,7 +134,7 @@ class Controller:
         SignalInterceptionStack.get(signal.SIGINT).push_unique(
             self._jobs.signal_interrupt
         )
-        launched = self._launch(exp_name, exp_path, manifest)
+        launched, task_id = self._launch(exp_name, exp_path, manifest)
 
         # start the job manager thread if not already started
         if not self._jobs.actively_monitoring:
@@ -149,6 +149,8 @@ class Controller:
             # poll handles its own keyboard interrupt as
             # it may be called separately
             self.poll(5, True, kill_on_interrupt=kill_on_interrupt)
+
+        return task_id
 
     @property
     def active_orchestrator_jobs(self) -> t.Dict[str, Job]:
@@ -400,6 +402,8 @@ class Controller:
         :param manifest: Manifest of deployables to launch
         """
 
+        task_id = 0
+
         manifest_builder = LaunchedManifestBuilder[t.Tuple[str, Step]](
             exp_name=exp_name,
             exp_path=exp_path,
@@ -479,14 +483,14 @@ class Controller:
 
         # launch and symlink steps
         for step, entity in steps:
-            self._launch_step(step, entity)
+            task_id = self._launch_step(step, entity)
             self.symlink_output_files(step, entity)
 
         # symlink substeps to maintain directory structure
         for substep, entity in symlink_substeps:
             self.symlink_output_files(substep, entity)
 
-        return manifest_builder.finalize()
+        return manifest_builder.finalize(), task_id
 
     def _launch_orchestrator(
         self,
@@ -515,7 +519,7 @@ class Controller:
                 orchestrator, [(orc_batch_step.name, step) for step in substeps]
             )
 
-            self._launch_step(orc_batch_step, orchestrator)
+            _ = self._launch_step(orc_batch_step, orchestrator)
             self.symlink_output_files(orc_batch_step, orchestrator)
 
             # symlink substeps to maintain directory structure
@@ -532,7 +536,7 @@ class Controller:
                 orchestrator, [(step.name, step) for step, _ in db_steps]
             )
             for db_step in db_steps:
-                self._launch_step(*db_step)
+                _ = self._launch_step(*db_step)
                 self.symlink_output_files(*db_step)
 
         # wait for orchestrator to spin up
@@ -577,6 +581,8 @@ class Controller:
         :param entity: entity instance
         :raises SmartSimError: if launch fails
         """
+        task_id = 0
+
         # attempt to retrieve entity name in JobManager.completed
         completed_job = self._jobs.completed.get(entity.name, None)
 
@@ -587,7 +593,7 @@ class Controller:
             entity.name not in self._jobs.jobs and entity.name not in self._jobs.db_jobs
         ):
             try:
-                job_id = self._launcher.run(job_step)
+                job_id, task_id = self._launcher.run(job_step)
             except LauncherError as e:
                 msg = f"An error occurred when launching {entity.name} \n"
                 msg += "Check error and output files for details.\n"
@@ -599,7 +605,7 @@ class Controller:
         # that has ran and completed, relaunch the entity.
         elif completed_job is not None and completed_job.entity is entity:
             try:
-                job_id = self._launcher.run(job_step)
+                job_id, task_id = self._launcher.run(job_step)
             except LauncherError as e:
                 msg = f"An error occurred when launching {entity.name} \n"
                 msg += "Check error and output files for details.\n"
@@ -623,6 +629,8 @@ class Controller:
         else:
             logger.debug(f"Launching {entity.name}")
             self._jobs.add_job(job_step.name, job_id, entity, is_task)
+
+        return task_id
 
     def _create_batch_job_step(
         self,
