@@ -125,7 +125,7 @@ extras_require = {
     "dev": [
         "black==24.1a1",
         "isort>=5.6.4",
-        "pylint>=2.10.0,<3",
+        "pylint>=3",
         "pytest>=6.0.0",
         "pytest-cov>=2.10.1",
         "click==8.0.2",
@@ -181,7 +181,7 @@ setup(
         "pyzmq>=25.1.2",
         "pygithub>=2.3.0",
         "numpy<2",
-        "smartredis>=0.5,<0.6",
+        "smartredis>=0.6,<0.7",
     ],
     zip_safe=False,
     extras_require=extras_require,

@@ -14,20 +14,32 @@
         },
         {
             "name": "libtorch",
-            "version": "2.3.1",
+            "version": "2.7.1",
             "pip_index": "https://download.pytorch.org/whl/cu118",
             "python_packages": [
-                "torch==2.3.1+cu118",
-                "torchvision==0.18.1+cu118",
-                "torchaudio==2.3.1+cu118"
+                "torch==2.7.1+cu118",
+                "torchvision==0.22.1+cu118",
+                "torchaudio==2.7.1+cu118"
             ],
-            "lib_source": "https://download.pytorch.org/libtorch/cu118/libtorch-cxx11-abi-shared-with-deps-2.3.1%2Bcu118.zip",
+            "lib_source": "https://download.pytorch.org/libtorch/cu118/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcu118.zip",
             "rai_patches": [
                 {
                     "description": "Patch RedisAI module to require C++17 standard instead of C++14",
                     "source_file": "src/backends/libtorch_c/CMakeLists.txt",
                     "regex": "set_property\\(TARGET\\storch_c\\sPROPERTY\\sCXX_STANDARD\\s(98|11|14)\\)",
                     "replacement": "set_property(TARGET torch_c PROPERTY CXX_STANDARD 17)"
+                },
+                {
+                    "description": "Fix the type in a Tensorflow function signature",
+                    "source_file": "src/backends/tensorflow.c",
+                    "regex": "TF_Input inputs",
+                    "replacement": "TF_Output inputs"
+                },
+                {
+                    "description": "Fix the type in a Tensorflow function signature",
+                    "source_file": "src/backends/tensorflow.c",
+                    "regex": "TF_Input port",
+                    "replacement": "TF_Output port"
                 }
             ]
         },

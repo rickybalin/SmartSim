@@ -55,13 +55,10 @@ jobs:
       fail-fast: false
       matrix:
         subset: [backends, slow_tests, group_a, group_b]
-        os: [macos-12, macos-14, ubuntu-22.04] # Operating systems
+        os: [macos-13, macos-14, ubuntu-22.04] # Operating systems
         compiler: [8] # GNU compiler version
         rai: [1.2.7] # Redis AI versions
-        py_v: ["3.9", "3.10", "3.11"] # Python versions
-        exclude:
-          - os: macos-14
-            py_v: "3.9"
+        py_v: ["3.10", "3.11", "3.12"] # Python versions
 
     steps:
       - uses: actions/checkout@v4
@@ -81,10 +78,11 @@ jobs:
         if: contains( matrix.os, 'macos' )
         run: |
           brew install make || true
+          brew install libomp || true
           echo "$(brew --prefix)/opt/make/libexec/gnubin" >> $GITHUB_PATH
 
       - name: Build Singularity from source
-        if: contains( matrix.os, 'ubuntu' ) && matrix.py_v == 3.9
+        if: contains( matrix.os, 'ubuntu' ) && matrix.py_v == 3.10
         run: |
           sudo apt-get install -y libseccomp-dev pkg-config squashfs-tools cryptsetup curl git # wget build-essential
           echo 'export PATH=/usr/local/go/bin:$PATH' >> ~/.bashrc
@@ -98,7 +96,7 @@ jobs:
           sudo make -C builddir install
 
       - name: singularity pull test container # This lets us time how long the pull takes
-        if: contains( matrix.os, 'ubuntu' ) && matrix.py_v == 3.9
+        if: contains( matrix.os, 'ubuntu' ) && matrix.py_v == 3.10
         run: singularity pull docker://alrigazzi/smartsim-testing
 
       # Note: The develop branch of smartredis is installed first to ensure that any tests that depend
@@ -144,9 +142,9 @@ jobs:
       # Upload artifacts on failure, ignoring binary files
       - name: Upload Artifact
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: test_artifact
+          name: test_artifact-${{ matrix.os }}-${{ matrix.subset }}-${{ matrix.py_v }}
           path: |
             tests/test_output
             !**/*.so
