@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -54,23 +54,6 @@ def test_single_char_concat():
 def test_fallthrough_concat():
     result = cat_arg_and_value("xx", "FOO")  # <-- no dashes, > 1 char
     assert result == "--xx=FOO"
-
-
-def test_encode_decode_cmd_round_trip():
-    orig_cmd = ["this", "is", "a", "cmd"]
-    decoded_cmd = helpers.decode_cmd(helpers.encode_cmd(orig_cmd))
-    assert orig_cmd == decoded_cmd
-    assert orig_cmd is not decoded_cmd
-
-
-def test_encode_raises_on_empty():
-    with pytest.raises(ValueError):
-        helpers.encode_cmd([])
-
-
-def test_decode_raises_on_empty():
-    with pytest.raises(ValueError):
-        helpers.decode_cmd("")
 
 
 class MockSignal:

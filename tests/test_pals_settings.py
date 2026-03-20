@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -43,12 +43,6 @@ pytestmark = pytest.mark.group_b
 
 default_exe = sys.executable
 default_kwargs = {"fail_if_missing_exec": False}
-
-
-@pytest.fixture(autouse=True)
-def turn_off_telemetry_indirect(monkeypatch):
-    monkeypatch.setattr(smartsim._core.config.config.Config, "telemetry_enabled", False)
-    yield
 
 
 # Uncomment when

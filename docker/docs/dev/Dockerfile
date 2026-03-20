@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,12 +45,6 @@ WORKDIR /usr/local/src/SmartSim/
 # Install smartredis
 RUN git clone https://github.com/CrayLabs/SmartRedis.git --branch develop --depth=1 smartredis \
     && cd smartredis \
-    && python -m pip install . \
-    && rm -rf ~/.cache/pip
-
-# Install smartdashboard
-RUN git clone https://github.com/CrayLabs/SmartDashboard.git --branch develop --depth=1 smartdashboard \
-    && cd smartdashboard \
     && python -m pip install . \
     && rm -rf ~/.cache/pip
 

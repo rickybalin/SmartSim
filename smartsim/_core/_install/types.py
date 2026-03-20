@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,5 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pathlib
-import typing as t
 
-PathLike = t.Union[str, pathlib.Path]
+PathLike = str | pathlib.Path

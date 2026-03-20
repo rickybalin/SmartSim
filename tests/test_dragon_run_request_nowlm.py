@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -81,8 +81,8 @@ def test_run_request_with_empty_policy(monkeypatch: pytest.MonkeyPatch) -> None:
 )
 def test_run_request_with_negative_affinity(
     device: str,
-    cpu_affinity: t.List[int],
-    gpu_affinity: t.List[int],
+    cpu_affinity: list[int],
+    gpu_affinity: list[int],
 ) -> None:
     """Verify that invalid affinity values fail validation"""
     with pytest.raises(ValidationError) as ex:

@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -298,8 +298,8 @@ def test_key_prefixing():
     assert e.query_key_prefixing() == True
 
 
-def test_ensemble_type():
-    exp = Experiment("name")
+def test_ensemble_type(test_dir):
+    exp = Experiment("name", test_dir)
     ens_settings = RunSettings("python")
     ensemble = exp.create_ensemble("name", replicas=4, run_settings=ens_settings)
     assert ensemble.type == "Ensemble"

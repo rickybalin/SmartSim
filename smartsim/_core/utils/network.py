@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024 Hewlett Packard Enterprise
+# Copyright (c) 2021-2025 Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,8 +35,8 @@ A handful of useful functions for dealing with networks
 
 
 class IFConfig(t.NamedTuple):
-    interface: t.Optional[str]
-    address: t.Optional[str]
+    interface: str | None
+    address: str | None
 
 
 def get_ip_from_host(host: str) -> str:

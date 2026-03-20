@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@ from tensorflow.python.framework.convert_to_constants import (  # type: ignore[i
 
 def freeze_model(
     model: keras.Model, output_dir: str, file_name: str
-) -> t.Tuple[str, t.List[str], t.List[str]]:
+) -> tuple[str, list[str], list[str]]:
     """Freeze a Keras or TensorFlow Graph
 
     to use a Keras or TensorFlow model in SmartSim, the model
@@ -78,7 +78,7 @@ def freeze_model(
     return model_file_path, input_names, output_names
 
 
-def serialize_model(model: keras.Model) -> t.Tuple[str, t.List[str], t.List[str]]:
+def serialize_model(model: keras.Model) -> tuple[str, list[str], list[str]]:
     """Serialize a Keras or TensorFlow Graph
 
     to use a Keras or TensorFlow model in SmartSim, the model

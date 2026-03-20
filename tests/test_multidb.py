@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -104,6 +104,8 @@ def test_db_identifier_standard_then_colo_error(
         "debug": True,
         "db_identifier": "testdb_colo",
     }
+    if wlmutils.get_test_launcher() == "slurm":
+        db_args["custom_pinning"] = []
 
     smartsim_model = coloutils.setup_test_colo(
         fileutils, db_type, exp, test_script, db_args, on_wlm=on_wlm
@@ -160,6 +162,8 @@ def test_db_identifier_colo_then_standard(
         "debug": True,
         "db_identifier": "testdb_colo",
     }
+    if wlmutils.get_test_launcher() == "slurm":
+        db_args["custom_pinning"] = []
 
     smartsim_model = coloutils.setup_test_colo(
         fileutils,
@@ -332,6 +336,8 @@ def test_multidb_colo_once(fileutils, test_dir, wlmutils, coloutils, db_type):
         "debug": True,
         "db_identifier": "testdb_colo",
     }
+    if wlmutils.get_test_launcher() == "slurm":
+        db_args["custom_pinning"] = []
     # Create model with colocated database
 
     smartsim_model = coloutils.setup_test_colo(
@@ -379,6 +385,8 @@ def test_multidb_standard_then_colo(fileutils, test_dir, wlmutils, coloutils, db
         "debug": True,
         "db_identifier": "testdb_colo",
     }
+    if wlmutils.get_test_launcher() == "slurm":
+        db_args["custom_pinning"] = []
     # Create model with colocated database
     smartsim_model = coloutils.setup_test_colo(
         fileutils,
@@ -420,6 +428,8 @@ def test_multidb_colo_then_standard(fileutils, test_dir, wlmutils, coloutils, db
         "debug": True,
         "db_identifier": "testdb_colo",
     }
+    if wlmutils.get_test_launcher() == "slurm":
+        db_args["custom_pinning"] = []
 
     # Create model with colocated database
     smartsim_model = coloutils.setup_test_colo(
@@ -477,6 +487,8 @@ def test_launch_cluster_orc_single_dbid(
         "debug": True,
         "db_identifier": "testdb_colo",
     }
+    if wlmutils.get_test_launcher() == "slurm":
+        db_args["custom_pinning"] = []
 
     # Create model with colocated database
     smartsim_model = coloutils.setup_test_colo(

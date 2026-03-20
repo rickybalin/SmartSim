@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -51,8 +51,8 @@ class _TqdmUpTo(tqdm):  # type: ignore[type-arg]
     """
 
     def update_to(
-        self, num_blocks: int = 1, bsize: int = 1, tsize: t.Optional[int] = None
-    ) -> t.Optional[bool]:
+        self, num_blocks: int = 1, bsize: int = 1, tsize: int | None = None
+    ) -> bool | None:
         """Update progress in tqdm-like way
 
         :param b: number of blocks transferred so far, defaults to 1

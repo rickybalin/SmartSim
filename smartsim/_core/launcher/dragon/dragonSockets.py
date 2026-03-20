@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@ if t.TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-AUTHENTICATOR: t.Optional["zmq.auth.thread.ThreadAuthenticator"] = None
+AUTHENTICATOR: "zmq.auth.thread.ThreadAuthenticator | None" = None
 
 
 def as_server(

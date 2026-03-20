@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -101,7 +101,7 @@ class Singularity(Container):
     def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
         super().__init__(*args, **kwargs)
 
-    def _container_cmds(self, default_working_directory: str = "") -> t.List[str]:
+    def _container_cmds(self, default_working_directory: str = "") -> list[str]:
         """Return list of container commands to be inserted before exe.
             Container members are validated during this call.
 

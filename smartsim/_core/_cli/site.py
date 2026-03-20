@@ -1,6 +1,6 @@
 # BSD 2-Clause License
 #
-# Copyright (c) 2021-2024, Hewlett Packard Enterprise
+# Copyright (c) 2021-2025, Hewlett Packard Enterprise
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,10 @@
 
 import argparse
 import os
-import typing as t
 
 from smartsim._core._cli.utils import get_install_path
 
 
-def execute(_args: argparse.Namespace, _unparsed_args: t.List[str], /) -> int:
+def execute(_args: argparse.Namespace, _unparsed_args: list[str], /) -> int:
     print(get_install_path())
     return os.EX_OK
